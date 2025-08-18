@@ -45,6 +45,9 @@ def init_db(path: pathlib.Path) -> sqlite3.Connection:
                        form TEXT,
                        cik  TEXT,
                        url  TEXT,
+                       company_name TEXT,
+                       filing_date TEXT,
+                       filing_href TEXT,
                        enqueued_ts TEXT,
                        processed INTEGER DEFAULT 0
                    )""")
@@ -111,11 +114,16 @@ def main() -> None:
                 form = hit["_source"]["form"]
                 cik  = hit["_source"]["ciks"][0]
                 url  = build_url(hit)
+                
+                # Extract additional attributes
+                company_name = hit["_source"].get("companyName", "")
+                filing_date = hit["_source"].get("filingDate", "")
+                filing_href = hit["_source"].get("filingHref", "")
 
-                cur.execute("""INSERT INTO dispatch_queue(adsh, form, cik, url, enqueued_ts)
-                               VALUES(?, ?, ?, ?, datetime('now'))""",
-                            (adsh, form, cik, url))
-                print(f"[NEW] {adsh} {form} → queued", flush=True)
+                cur.execute("""INSERT INTO dispatch_queue(adsh, form, cik, url, company_name, filing_date, filing_href, enqueued_ts)
+                               VALUES(?, ?, ?, ?, ?, ?, ?, datetime('now'))""",
+                            (adsh, form, cik, url, company_name, filing_date, filing_href))
+                print(f"[NEW] {adsh} {form} {company_name} → queued", flush=True)
 
             conn.commit()
             print(f"[LOOP] Polling cycle completed at {dt.datetime.now().strftime('%H:%M:%S')}")

@@ -1,5 +1,6 @@
-pandas
-requests
-beautifulsoup4
-jupyter
-edgartools 
+pandas==2.2.2
+requests==2.32.2
+beautifulsoup4==4.12.3
+jupyter==1.0.0
+edgartools==4.8.0
+httpx[http2]==0.28.1
