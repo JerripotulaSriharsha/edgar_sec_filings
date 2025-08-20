@@ -59,18 +59,38 @@ def init_db(path: pathlib.Path) -> sqlite3.Connection:
 # ──────────────────────────────────────────────────────────
 def fetch_latest(date_iso: str) -> List[Dict]:
     print(f"[POLL] Fetching latest filings for {date_iso}")
-    params = {
-        "forms": "-0",     # all forms
-        "startdt": date_iso,
-        "enddt": date_iso,
-        "page": 1,
-        "from": 0,
-    }
-    r = requests.get(BASE_URL, params=params, headers=HEADERS, timeout=10)
-    r.raise_for_status()
-    hits = r.json()["hits"]["hits"]
-    print(f"[POLL] Found {len(hits)} filings")
-    return hits
+    all_hits = []
+    
+    # Fetch multiple pages to get more than 100 filings
+    for page in range(1, 6):  # Get pages 1, 2, 3, 4, 5 (up to 500 filings)
+        params = {
+            "forms": "-0",     # all forms
+            "startdt": date_iso,
+            "enddt": date_iso,
+            "page": page,
+            "from": (page-1)*100,
+        }
+        
+        try:
+            r = requests.get(BASE_URL, params=params, headers=HEADERS, timeout=10)
+            r.raise_for_status()
+            hits = r.json()["hits"]["hits"]
+            
+            if not hits:  # No more filings on this page
+                break
+                
+            all_hits.extend(hits)
+            print(f"[POLL] Page {page}: Found {len(hits)} filings")
+            
+            if len(hits) < 100:  # Last page has fewer than 100 filings
+                break
+                
+        except Exception as e:
+            print(f"[ERROR] Failed to fetch page {page}: {e}")
+            break
+    
+    print(f"[POLL] Total filings found: {len(all_hits)}")
+    return all_hits
 
 # ──────────────────────────────────────────────────────────
 # Build URL for filing
@@ -89,7 +109,7 @@ def main() -> None:
     print("[START] SEC EDGAR poller starting up...")
     print(f"[CONFIG] Database: {DB_PATH}")
     print(f"[CONFIG] User Agent: {USER_AGENT}")
-    print("[INFO] Polling every 60 seconds for new SEC filings...")
+    print("[INFO] Polling every 1 second for new SEC filings (MAXIMUM SPEED - 60x faster!)...")
     print("[INFO] Press Ctrl+C to stop")
     print("-" * 60)
     
@@ -130,8 +150,8 @@ def main() -> None:
         except Exception as exc:
             print(f"[ERROR] {exc}", flush=True)
 
-        # Sleep until 60 seconds since loop start
-        sleep_left = 60 - (time.time() - start)
+        # Sleep until 1 second since loop start (MAXIMUM SPEED - 60x faster!)
+        sleep_left = 1 - (time.time() - start)
         if sleep_left > 0:
             print(f"[SLEEP] Waiting {sleep_left:.1f} seconds until next poll...")
             time.sleep(sleep_left)
