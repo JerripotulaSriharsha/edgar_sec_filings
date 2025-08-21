@@ -5,3 +5,6 @@ jupyter==1.0.0
 edgartools>=4.8.0
 httpx>=0.28.1
 datamule
+matplotlib>=3.7.0
+pydantic>=2.0.0
+instructor>=1.0.0
